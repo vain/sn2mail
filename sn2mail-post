@@ -27,10 +27,12 @@ echo "$original_text" | fmt | sed 's/^/> /' >>"$reply_text"
 echo >>"$reply_text"
 reply_hash=$(md5sum "$reply_text")
 
-exec 0</dev/tty
-exec 1>/dev/tty
-exec 2>/dev/tty
-$EDITOR "$reply_text"
+(
+	exec 0</dev/tty
+	exec 1>/dev/tty
+	exec 2>/dev/tty
+	$EDITOR "$reply_text"
+)
 reply_hash_new=$(md5sum "$reply_text")
 
 # Only send this notice if the file really has changed.
