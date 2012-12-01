@@ -13,7 +13,7 @@ fi
 trap 'rm -Rf "$lock"' EXIT
 
 # Don't fetch all entries if this is not our first run.
-[[ -f $idcache ]] && last_id="?since_id=$(< "$idcache")"
+[[ -f $idcache ]] && last_id="&since_id=$(< "$idcache")"
 
 # Common prefix for message IDs. Hash user, pass and url so it's
 # possible to fetch from different accounts.
@@ -29,7 +29,8 @@ done
 
 # Use xmlstarlet to parse the XML.
 first=yes
-curl -f --user "$user:$pass" -s "$url/statuses/public_timeline.xml$last_id" |
+curl -f --user "$user:$pass" -s \
+"$url/statuses/public_timeline.xml?count=200$last_id" |
 xmlstarlet tr "$sheet" |
 while read -r notice_id
 do
