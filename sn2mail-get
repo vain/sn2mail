@@ -32,7 +32,7 @@ do
 	# Send an e-mail. Use sendmail directly so we have full control.
 	sendmail "$to" <<EOF
 From: $notice_user <$from> 
-Subject: ${notice_text:0:50}
+Subject: $notice_text
 Message-ID: <$mid_pre$notice_id>
 In-Reply-To: $ref
 Date: $(date -R -d "$notice_created_at")
