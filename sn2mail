@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# The script is configured via environment variables.
+user=${SN2MAIL_USER:-void}
+pass=${SN2MAIL_PASS:-blabla}
+url=${SN2MAIL_BASE:-http://localhost/void/www/statusnet-1.1.0/index.php/api/}
+idcache=${SN2MAIL_IDCACHE:-~/.sn2mail_last}
+from=${SN2MAIL_FROM:-microblog}
+to=${SN2MAIL_TO:-$USER}
+
+# Don't fetch all entries if this is not our first run.
+[[ -f $idcache ]] && last_id="?since_id=$(< "$idcache")"
+
+# Common prefix for message IDs. Hash user, pass and url so it's
+# possible to fetch from different accounts.
+mid_pre="microblog-$(echo "$user$pass$url" | md5sum | cut -d ' ' -f1)-"
+
+# Use xmlstarlet to parse the XML.
+first=yes
+curl --user "$user:$pass" -s "$url/statuses/public_timeline.xml$last_id" |
+xmlstarlet tr timeline.xslt |
+while read -r notice_id
+do
+	read -r notice_in_reply_to
+	read -r notice_user
+	read -r notice_created_at
+	read -r notice_text
+
+	# Save the most recent ID for the next run.
+	[[ $first == yes ]] && { echo "$notice_id" >"$idcache"; first=no; }
+
+	# Does this notice have references?
+	ref=
+	[[ -n $notice_in_reply_to ]] && ref="<$mid_pre$notice_in_reply_to>"
+
+	# Send an e-mail. Use sendmail directly so we have full control.
+	sendmail "$to" <<EOF
+From: $notice_user <$from> 
+Subject: ${notice_text:0:50}
+Message-ID: <$mid_pre$notice_id>
+In-Reply-To: $ref
+Date: $(date -R -d "$notice_created_at")
+
+$notice_text
+EOF
+done
