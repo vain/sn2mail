@@ -13,8 +13,8 @@ mid_pre="microblog-$(echo "$user$pass$url" | md5sum | cut -d ' ' -f1)-"
 
 # Use xmlstarlet to parse the XML.
 first=yes
-curl --user "$user:$pass" -s "$url/statuses/public_timeline.xml$last_id" |
-xmlstarlet tr "$(dirname "$0")/timeline.xslt" |
+curl -f --user "$user:$pass" -s "$url/statuses/public_timeline.xml$last_id" |
+xmlstarlet tr "$(dirname "$(readlink -f "$0")")/timeline.xslt" |
 while read -r notice_id
 do
 	read -r notice_in_reply_to
