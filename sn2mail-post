@@ -44,6 +44,7 @@ encoded_text=$(echo "$actual_text" | sed 's/&/\&amp;/g')
 encoded_text=$(echo "$encoded_text" | sed 's/</&lt;/g')
 encoded_text=$(echo "$encoded_text" | sed 's/>/&gt;/g')
 
+echo "Posting..."
 response=$(curl -f -i --user "$user:$pass" -s -F "status=$encoded_text" "$target")
 if (( $? != 0 ))
 then
@@ -51,5 +52,6 @@ then
 	echo >&2
 	echo "$response" >&2
 else
+	echo "Retrieving new items..."
 	sn2mail-get
 fi
