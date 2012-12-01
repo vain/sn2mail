@@ -45,7 +45,7 @@ encoded_text=$(echo "$encoded_text" | sed 's/</&lt;/g')
 encoded_text=$(echo "$encoded_text" | sed 's/>/&gt;/g')
 
 echo "Posting..."
-response=$(curl -f -i --user "$user:$pass" -s -F "status=$encoded_text" "$target")
+response=$(curl -f -i --user "$user:$pass" -s -F "status= $encoded_text" "$target")
 if (( $? != 0 ))
 then
 	echo "Posting failed." >&2
