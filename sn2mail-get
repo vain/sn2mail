@@ -4,6 +4,14 @@ rcfile=${SN2MAILRC:-~/.sn2mailrc}
 [[ ! -r "$rcfile" ]] && { echo "No settings found.">&2; exit 1; }
 . "$rcfile"
 
+lock="/tmp/sn2mail-get-lock"
+if ! mkdir "$lock" &>/dev/null
+then
+	echo "sn2mail-get already running. Aborting." >&2
+	exit 1
+fi
+trap 'rm -Rf "$lock"' EXIT
+
 # Don't fetch all entries if this is not our first run.
 [[ -f $idcache ]] && last_id="?since_id=$(< "$idcache")"
 
