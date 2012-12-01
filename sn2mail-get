@@ -38,7 +38,7 @@ do
 	[[ -n $notice_in_reply_to ]] && ref="<$mid_pre$notice_in_reply_to>"
 
 	# Send an e-mail. Use sendmail directly so we have full control.
-	sendmail "$to" <<EOF
+	${SENDMAIL:-sendmail} "$to" <<EOF
 From: $notice_user <$from> 
 Subject: $notice_text
 Message-ID: <$mid_pre$notice_id>
