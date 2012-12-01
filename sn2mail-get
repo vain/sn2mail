@@ -19,10 +19,18 @@ trap 'rm -Rf "$lock"' EXIT
 # possible to fetch from different accounts.
 mid_pre="microblog-$(echo "$user$pass$url" | md5sum | cut -d ' ' -f1)-"
 
+# Try to find XSLT sheet.
+sheet=
+for d in "$(dirname "$(readlink -f "$0")")" /usr/share/sn2mail
+do
+	[[ -r $d/timeline.xslt ]] && { sheet="$d/timeline.xslt"; break; }
+done
+[[ -z $sheet ]] && { echo "Can't find XSLT sheet." >&2; exit 1; }
+
 # Use xmlstarlet to parse the XML.
 first=yes
 curl -f --user "$user:$pass" -s "$url/statuses/public_timeline.xml$last_id" |
-xmlstarlet tr "$(dirname "$(readlink -f "$0")")/timeline.xslt" |
+xmlstarlet tr "$sheet" |
 while read -r notice_id
 do
 	read -r notice_in_reply_to
