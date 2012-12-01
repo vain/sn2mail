@@ -1,0 +1,93 @@
+sn2mail -- StatusNet to mail. Tailored to suit my needs.
+
+
+Expected setup
+
+	A local mail server. My exim.conf looks something like this:
+
+		begin routers
+
+		system_aliases:
+		  driver = redirect
+		  data = ${lookup{$local_part}lsearch{/etc/mail/aliases}}
+
+		localuser:
+		  driver = accept
+		  check_local_user
+		  transport = local_delivery_procmail
+		  cannot_route_message = Unknown user
+
+		begin transports
+
+		local_delivery_procmail:
+		  driver = pipe
+		  pipe_as_creator = yes
+		  environment = HOME=ORIG_USER_HOME
+		  message_prefix =
+		  log_fail_output = yes
+		  return_fail_output = yes
+		  use_shell = yes
+		  command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim \
+		            -f $sender_address -d $local_part
+
+	procmail is used to sort mails into different mailboxes:
+
+		VERBOSE=off
+		MAILDIR=$HOME/Mail/
+		DEFAULT=$HOME/Mail/system/
+
+		:0
+		* ^From.*microblog@.*
+		system_microblog/
+
+	(I use a different rc file for incoming mail from other hosts.)
+
+	As you can see, all mail originating from "microblog@..." gets
+	placed into an own mailbox.
+
+
+Config for sn2mail
+
+	~/.sn2mailrc is read on startup (can be overriden with $SN2MAILRC).
+
+		user=YourUserOnStatusNet
+		pass=blabla
+		url=http://localhost/void/www/statusnet-1.1.0/index.php/api/
+		idcache=~/.sn2mail_last
+		from=microblog
+		to=$USER
+
+	"to=$USER" means the mail is being sent to the same user who is
+	running sn2mail-get, i.e. $USER is a shell variable.
+
+
+sn2mail-get
+
+	Run this from cron. It uses Basic Auth, fetches all new entries and
+	sends you a mail for each entry.
+
+		* * * * * /path/to/sn2mail-get
+
+	sn2mail-get uses "sendmail" to send mail (can be overriden with
+	$SENDMAIL). With the above setup (exim + procmail), those mails
+	never leave your machine.
+
+
+sn2mail-post
+
+	I use Mutt as MUA. In my muttrc, I have this:
+
+		# sn2mail-post: Reply to a message.
+		macro pager,attach,compose \cw "\
+		<enter-command> set my_pipe_decode=\$pipe_decode pipe_decode<Enter>\
+		<enter-command> set my_weed=\$weed weed=no<Enter>\
+		<pipe-message> sn2mail-post /dev/stdin<Enter>\
+		<enter-command> set pipe_decode=\$my_pipe_decode; unset my_pipe_decode<Enter>\
+		<enter-command> set weed=\$my_weed; unset my_weed<Enter>" \
+		"call urlview to extract URLs out of a message"
+
+		# sn2mail-post: New posting.
+		macro index \cw "!sn2mail-post<Enter>"
+
+	Thus, when reading a mail, I can hit "^W" to reply to this notice.
+	When simply viewing the index, "^W" creates a new posting.
