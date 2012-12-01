@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# The script is configured via environment variables.
-user=${SN2MAIL_USER:-void}
-pass=${SN2MAIL_PASS:-blabla}
-url=${SN2MAIL_BASE:-http://localhost/void/www/statusnet-1.1.0/index.php/api/}
+rcfile=${SN2MAILRC:-~/.sn2mailrc}
+[[ ! -r "$rcfile" ]] && { echo "No settings found.">&2; exit 1; }
+. "$rcfile"
 
 # Read a quote from a filename (may be /dev/stdin) or do a new posting?
 if [[ -n $1 ]]
