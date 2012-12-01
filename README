@@ -21,14 +21,13 @@ Expected setup
 
 		local_delivery_procmail:
 		  driver = pipe
-		  pipe_as_creator = yes
-		  environment = HOME=ORIG_USER_HOME
 		  message_prefix =
 		  log_fail_output = yes
 		  return_fail_output = yes
-		  use_shell = yes
-		  command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim \
-		            -f $sender_address -d $local_part
+		  delivery_date_add
+		  envelope_to_add
+		  return_path_add
+		  command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim
 
 	procmail is used to sort mails into different mailboxes:
 
