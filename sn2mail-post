@@ -42,4 +42,12 @@ encoded_text=$(echo "$actual_text" | sed 's/&/\&amp;/g')
 encoded_text=$(echo "$encoded_text" | sed 's/</&lt;/g')
 encoded_text=$(echo "$encoded_text" | sed 's/>/&gt;/g')
 
-curl --user "$user:$pass" -s -F "status=$encoded_text" "$target" >/dev/null
+response=$(curl -f -i --user "$user:$pass" -s -F "status=$encoded_text" "$target")
+if (( $? != 0 ))
+then
+	echo "Posting failed." >&2
+	echo >&2
+	echo "$response" >&2
+else
+	sn2mail-get
+fi
