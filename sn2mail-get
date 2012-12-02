@@ -52,7 +52,7 @@ do
 
 	# Send an e-mail. Use sendmail directly so we have full control.
 	${SENDMAIL:-sendmail} "$to" <<EOF
-From: $notice_user <$from> 
+From: "${notice_user//\"/}" <$from>
 Subject: $notice_text_crop
 Message-ID: <$mid_pre$notice_id>
 In-Reply-To: $ref
