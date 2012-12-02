@@ -39,6 +39,10 @@ do
 	read -r notice_created_at
 	read -r notice_text
 
+	notice_text_fmt=$(echo "$notice_text" | fmt)
+	notice_text_crop=${notice_text:0:60}
+	(( ${#notice_text} > 60 )) && notice_text_crop="$notice_text_crop..."
+
 	# Save the most recent ID for the next run.
 	[[ $first == yes ]] && { echo "$notice_id" >"$idcache"; first=no; }
 
@@ -49,11 +53,11 @@ do
 	# Send an e-mail. Use sendmail directly so we have full control.
 	${SENDMAIL:-sendmail} "$to" <<EOF
 From: $notice_user <$from> 
-Subject: $notice_text
+Subject: $notice_text_crop
 Message-ID: <$mid_pre$notice_id>
 In-Reply-To: $ref
 Date: $(date -R -d "$notice_created_at")
 
-$notice_text
+$notice_text_fmt
 EOF
 done
