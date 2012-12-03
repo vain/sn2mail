@@ -39,6 +39,7 @@ do
 	read -r notice_created_at
 	read -r notice_text
 
+	# Format and crop text.
 	notice_text_fmt=$(echo "$notice_text" | fmt)
 	notice_text_crop=${notice_text:0:60}
 	(( ${#notice_text} > 60 )) && notice_text_crop="$notice_text_crop..."
