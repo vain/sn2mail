@@ -77,16 +77,17 @@ sn2mail-post
 	I use Mutt as MUA. In my muttrc, I have this:
 
 		# sn2mail-post: Reply to a message.
-		macro pager,attach,compose \cw "\
+		macro pager \cw "\
 		<enter-command> set my_pipe_decode=\$pipe_decode pipe_decode<Enter>\
 		<enter-command> set my_weed=\$weed weed=no<Enter>\
 		<pipe-message> sn2mail-post /dev/stdin<Enter>\
 		<enter-command> set pipe_decode=\$my_pipe_decode; unset my_pipe_decode<Enter>\
 		<enter-command> set weed=\$my_weed; unset my_weed<Enter>" \
-		"call urlview to extract URLs out of a message"
+		"sn2mail: Reply to this notice"
 
 		# sn2mail-post: New posting.
-		macro index \cw "!sn2mail-post<Enter>"
+		macro index \cw "!sn2mail-post<Enter>" \
+		"sn2mail: Post new notice"
 
 	Thus, when reading a mail, I can hit "^W" to reply to this notice.
 	When simply viewing the index, "^W" creates a new posting.
