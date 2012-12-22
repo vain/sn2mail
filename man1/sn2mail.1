@@ -1,0 +1,188 @@
+.TH SN2MAIL 1 "December 2012" "sn2mail" "StatusNet to E-Mail bridge"
+.SH NAME
+sn2mail \- StatusNet to E-Mail bridge
+.SH SYNOPSIS
+\fBsn2mail-get\fP
+.br
+\fBsn2mail-post\fP [\fIreply-to-this-message\fP]
+.SH DESCRIPTION
+\fBsn2mail-get\fP is a simple tool that allows you to read StatusNet
+notices via e-mail. \fBsn2mail-post\fP can be used to post new notices.
+Both tools access the StatusNet API directly using \fBcurl\fP(1) and
+\fBxmlstarlet\fP(1).
+.P
+\fBsn2mail-get\fP uses the \fBsendmail\fP(8) interface to send an e-mail
+for each notice. It creates a unique \(lqMessage-ID\(rq for each notice
+and also adds a correct \(lqIn-Reply-To\(rq header. This will allow your
+MUA to do proper threading.
+.P
+\fBsn2mail-post\fP can be fed an existing e-mail. If you do so, the
+\(lqMessage-ID\(rq will be extracted and, from that, the original
+\(lqstatus ID\(rq will be reconstructed. So, on StatusNet's end, there
+will be proper threading as well. \fBsn2mail-post\fP does not interact
+with any mail tools \(em it's meant to be run interactively from inside
+your MUA. When you start it, you will be put in your $\fBEDITOR\fP to
+compose the notice. This integrates particularly well with
+\fBmutt\fP(1).
+.SH OPTIONS
+There are no command line options for \fBsn2mail-get\fP. It always reads
+your configuration file, checks your StatusNet account and sends e-mails
+for all new notices.
+.P
+\fBsn2mail-post\fP has one optional argument, a file name. If it's
+present, it must be a path to the e-mail (which contains a StatusNet
+notice) you wish to respond to. Note that you can use \fI/dev/stdin\fP
+here to make \fBsn2mail-post\fP read from \fIstdin\fP.
+.SH CONFIGURATION
+\fI~/.sn2mailrc\fP is a simple shell script to define some variables:
+.P
+\f(CW
+.nf
+	user=YourUserOnStatusNet
+	pass=blabla
+	url=http://localhost/statusnet-1.1.0/index.php/api/
+	idcache=~/.sn2mail_last
+	from=microblog
+	to=$USER
+.fi
+\fP
+.P
+It should be pretty obvious what most of these variables mean.
+.P
+\(lqto=$USER\(rq means the mail is being sent to the same user who is
+running \fBsn2mail-get\fP, i.e. $\fBUSER\fP is a shell variable.
+\(lqfrom=\(rq is simply the name of the sender of an e-mail. It has
+nothing to do with your StatusNet account. In the example above, all
+e-mails will be originating from \(lqmicroblog
+<your.username@localhost>\(rq or similar.
+.P
+\(lqidcache\(rq stores the ID of the last seen notice.
+.P
+You can override the location of the configuration file using the
+environment variable $\fBSN2MAILRC\fP.
+.P
+\fBsn2mail\fP comes with some exemplary config files for the
+\fBexim\fP(8) MTA and \fBmutt\fP, suited for standalone workstations.
+See below.
+.SH "EXEMPLARY MAIL SERVER CONFIGURATION"
+If you have not yet set up a local mail server, you could do it like
+this \(em this is a valid \fIexim.conf\fP:
+.P
+\f(CW
+.nf
+	begin routers
+
+	system_aliases:
+	  driver = redirect
+	  data = ${lookup{$local_part}lsearch{/etc/mail/aliases}}
+
+	localuser:
+	  driver = accept
+	  check_local_user
+	  transport = local_delivery_procmail
+	  cannot_route_message = Unknown user
+
+	begin transports
+
+	local_delivery_procmail:
+	  driver = pipe
+	  message_prefix =
+	  log_fail_output = yes
+	  return_fail_output = yes
+	  delivery_date_add
+	  envelope_to_add
+	  return_path_add
+	  command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim
+.fi
+\fP
+.P
+Essentially, this only allows local mail transfer. It also routes all
+e-mail through \fBprocmail\fP(1) which will do additional filtering. An
+exemplary \fI~/.procmailrc-exim\fP:
+.P
+\f(CW
+.nf
+	VERBOSE=off
+	MAILDIR=$HOME/Mail/
+	DEFAULT=$HOME/Mail/system/
+
+	:0
+	* ^From.*microblog@.*
+	system_microblog/
+.fi
+\fP
+.P
+As you can see, normal system mail will end up in the maildir
+\fI~/Mail/system\fP. Mail from \fBsn2mail-get\fP will be put in a
+different folder, namely \fI~/Mail/system_microblog\fP.
+.SH "EXEMPLARY MUTT CONFIGURATION"
+To do create a new posting, simply call \fBsn2mail-post\fP. You can
+create a macro like this:
+.P
+\f(CW
+.nf
+	# sn2mail-post: New posting.
+	macro index \\cw "!sn2mail-post<Enter>" \\
+	"sn2mail: Post new notice"
+.fi
+\fP
+.P
+Note that this macro is only active in the \(lqindex\(rq view.
+.P
+To reply to a particular notice, this works very well:
+.P
+\f(CW
+.nf
+	# sn2mail-post: Reply to a message.
+	macro pager \\cw "\\
+	<enter-command> set my_pipe_decode=\\$pipe_decode<Enter>\\
+	<enter-command> set my_weed=\\$weed<Enter>\\
+	<enter-command> set pipe_decode<Enter>\\
+	<enter-command> set weed=no<Enter>\\
+	<pipe-message> sn2mail-post /dev/stdin<Enter>\\
+	<enter-command> set pipe_decode=\\$my_pipe_decode<Enter>\\
+	<enter-command> set weed=\\$my_weed<Enter>\\
+	<enter-command> unset my_pipe_decode<Enter>\\
+	<enter-command> unset my_weed<Enter>" \\
+	"sn2mail: Reply to this notice"
+.fi
+\fP
+.P
+It's a \(lqpager\(rq macro, meaning that you'll have to open a message
+first. It then pipes this message to \fBsn2mail-post\fP. Note that we
+must deactivate \fBweed\fP so that headers won't be eliminated from the
+e-mail.
+.P
+To sum it up, hitting \(lq^W\(rq in the index creates a new notice.
+\(lq^W\(rq when reading a message will reply to that message.
+.SH ENVIRONMENT
+.TP
+.BR SN2MAILRC
+Override the default location of the configuration file.
+.TP
+.BR SENDMAIL
+\fPsn2mail-get\fP will use this program to send e-mails. Defaults to
+\fBsendmail\fP but can be anything that supports the standard sendmail
+command line arguments.
+.TP
+.BR EDITOR
+\fBsn2mail-post\fP will open this program so you can compose new notices
+there. Defaults to \fBvim\fP.
+.SH FILES
+.TP
+\fI~/.sn2mailrc\fP
+Configuration file. Can be overriden using $\fBSN2MAILRC\fP.
+.SH BUGS
+Currently, no bugs are known. If you find one, we invite you to report
+it at the GitHub Issue tracker (http://github.com/vain/sn2mail/issues).
+.SH LICENSE
+\fBsn2mail\fP is released as \(lqPIZZA-WARE\(rq. See the accompanying
+\fILICENSE\fP file.
+.SH AUTHORS
+\fBsn2mail\fP and this man page were written by Peter Hofmann.
+.SH "SEE ALSO"
+.BR curl (1),
+.BR xmlstarlet (1),
+.BR mutt (1),
+.BR exim (8),
+.BR sendmail (8).
