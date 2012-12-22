@@ -1,93 +1,189 @@
-sn2mail -- StatusNet to mail. Tailored to suit my needs.
+SN2MAIL(1)            StatusNet to E-Mail bridge            SN2MAIL(1)
 
 
-Expected setup
 
-	A local mail server. My exim.conf looks something like this:
+NAME
+       sn2mail - StatusNet to E-Mail bridge
 
-		begin routers
+SYNOPSIS
+       sn2mail-get
+       sn2mail-post [reply-to-this-message]
 
-		system_aliases:
-		  driver = redirect
-		  data = ${lookup{$local_part}lsearch{/etc/mail/aliases}}
+DESCRIPTION
+       sn2mail-get  is a simple tool that allows you to read StatusNet
+       notices via e-mail.  sn2mail-post  can  be  used  to  post  new
+       notices.   Both  tools  access the StatusNet API directly using
+       curl(1) and xmlstarlet(1).
 
-		localuser:
-		  driver = accept
-		  check_local_user
-		  transport = local_delivery_procmail
-		  cannot_route_message = Unknown user
+       sn2mail-get uses the sendmail(8) interface to  send  an  e-mail
+       for  each  notice.  It  creates  a unique “Message-ID” for each
+       notice and also adds a correct “In-Reply-To” header. This  will
+       allow your MUA to do proper threading.
 
-		begin transports
+       sn2mail-post  can  be fed an existing e-mail. If you do so, the
+       “Message-ID” will be extracted and,  from  that,  the  original
+       “status  ID”  will  be  reconstructed.  So, on StatusNet's end,
+       there will be proper threading as well. sn2mail-post  does  not
+       interact  with  any  mail tools — it's meant to be run interac‐
+       tively from inside your MUA. When you start it, you will be put
+       in your $EDITOR to compose the notice. This integrates particu‐
+       larly well with mutt(1).
 
-		local_delivery_procmail:
-		  driver = pipe
-		  message_prefix =
-		  log_fail_output = yes
-		  return_fail_output = yes
-		  delivery_date_add
-		  envelope_to_add
-		  return_path_add
-		  command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim
+OPTIONS
+       There are no command line options for  sn2mail-get.  It  always
+       reads  your  configuration  file, checks your StatusNet account
+       and sends e-mails for all new notices.
 
-	procmail is used to sort mails into different mailboxes:
+       sn2mail-post has one optional argument, a file  name.  If  it's
+       present, it must be a path to the e-mail (which contains a Sta‐
+       tusNet notice) you wish to respond to. Note that  you  can  use
+       /dev/stdin here to make sn2mail-post read from stdin.
 
-		VERBOSE=off
-		MAILDIR=$HOME/Mail/
-		DEFAULT=$HOME/Mail/system/
-
-		:0
-		* ^From.*microblog@.*
-		system_microblog/
-
-	(I use a different rc file for incoming mail from other hosts.)
-
-	As you can see, all mail originating from "microblog@..." gets
-	placed into an own mailbox.
+CONFIGURATION
+       ~/.sn2mailrc is a simple shell script to define some variables:
 
 
-Config for sn2mail
-
-	~/.sn2mailrc is read on startup (can be overriden with $SN2MAILRC).
-
-		user=YourUserOnStatusNet
-		pass=blabla
-		url=http://localhost/void/www/statusnet-1.1.0/index.php/api/
-		idcache=~/.sn2mail_last
-		from=microblog
-		to=$USER
-
-	"to=$USER" means the mail is being sent to the same user who is
-	running sn2mail-get, i.e. $USER is a shell variable.
+            user=YourUserOnStatusNet
+            pass=blabla
+            url=http://localhost/statusnet-1.1.0/index.php/api/
+            idcache=~/.sn2mail_last
+            from=microblog
+            to=$USER
 
 
-sn2mail-get
+       It should be pretty obvious what most of these variables mean.
 
-	Run this from cron. It uses Basic Auth, fetches all new entries and
-	sends you a mail for each entry.
+       “to=$USER” means the mail is being sent to the same user who is
+       running sn2mail-get, i.e. $USER is a shell  variable.   “from=”
+       is  simply  the name of the sender of an e-mail. It has nothing
+       to do with your StatusNet account. In the example above, all e-
+       mails will be originating from “microblog <your.username@local‐
+       host>” or similar.
 
-		* * * * * /path/to/sn2mail-get
+       “idcache” stores the ID of the last seen notice.
 
-	sn2mail-get uses "sendmail" to send mail (can be overriden with
-	$SENDMAIL). With the above setup (exim + procmail), those mails
-	never leave your machine.
+       You can override the location of the configuration  file  using
+       the environment variable $SN2MAILRC.
+
+       sn2mail  comes with some exemplary config files for the exim(8)
+       MTA and mutt, suited for standalone workstations.  See below.
+
+EXEMPLARY MAIL SERVER CONFIGURATION
+       If you have not yet set up a local mail server, you could do it
+       like this — this is a valid exim.conf:
 
 
-sn2mail-post
+            begin routers
 
-	I use Mutt as MUA. In my muttrc, I have this:
+            system_aliases:
+              driver = redirect
+              data = ${lookup{$local_part}lsearch{/etc/mail/aliases}}
 
-		# sn2mail-post: Reply to a message.
-		macro pager \cw "\
-		<enter-command> set my_pipe_decode=\$pipe_decode pipe_decode<Enter>\
-		<enter-command> set my_weed=\$weed weed=no<Enter>\
-		<pipe-message> sn2mail-post /dev/stdin<Enter>\
-		<enter-command> set pipe_decode=\$my_pipe_decode; unset my_pipe_decode<Enter>\
-		<enter-command> set weed=\$my_weed; unset my_weed<Enter>" \
-		"sn2mail: Reply to this notice"
+            localuser:
+              driver = accept
+              check_local_user
+              transport = local_delivery_procmail
+              cannot_route_message = Unknown user
 
-		# sn2mail-post: New posting.
-		macro index \cw "!sn2mail-post<Enter>" \
-		"sn2mail: Post new notice"
+            begin transports
 
-	Thus, when reading a mail, I can hit "^W" to reply to this notice.
-	When simply viewing the index, "^W" creates a new posting.
+            local_delivery_procmail:
+              driver = pipe
+              message_prefix =
+              log_fail_output = yes
+              return_fail_output = yes
+              delivery_date_add
+              envelope_to_add
+              return_path_add
+              command = /usr/bin/procmail -m /home/$local_part/.procmailrc-exim
+
+
+       Essentially,  this  only  allows  local  mail transfer. It also
+       routes all e-mail through procmail(1) which will do  additional
+       filtering. An exemplary ~/.procmailrc-exim:
+
+
+            VERBOSE=off
+            MAILDIR=$HOME/Mail/
+            DEFAULT=$HOME/Mail/system/
+
+            :0
+            * ^From.*microblog@.*
+            system_microblog/
+
+
+       As  you  can see, normal system mail will end up in the maildir
+       ~/Mail/system. Mail from sn2mail-get will be put in a different
+       folder, namely ~/Mail/system_microblog.
+
+EXEMPLARY MUTT CONFIGURATION
+       To  do  create a new posting, simply call sn2mail-post. You can
+       create a macro like this:
+
+
+            # sn2mail-post: New posting.
+            macro index \cw "!sn2mail-post<Enter>" \
+            "sn2mail: Post new notice"
+
+
+       Note that this macro is only active in the “index” view.
+
+       To reply to a particular notice, this works very well:
+
+
+            # sn2mail-post: Reply to a message.
+            macro pager \cw "\
+            <enter-command> set my_pipe_decode=\$pipe_decode<Enter>\
+            <enter-command> set my_weed=\$weed<Enter>\
+            <enter-command> set pipe_decode<Enter>\
+            <enter-command> set weed=no<Enter>\
+            <pipe-message> sn2mail-post /dev/stdin<Enter>\
+            <enter-command> set pipe_decode=\$my_pipe_decode<Enter>\
+            <enter-command> set weed=\$my_weed<Enter>\
+            <enter-command> unset my_pipe_decode<Enter>\
+            <enter-command> unset my_weed<Enter>" \
+            "sn2mail: Reply to this notice"
+
+
+       It's a “pager” macro, meaning that you'll have to open  a  mes‐
+       sage  first.  It  then pipes this message to sn2mail-post. Note
+       that we must deactivate weed so that headers  won't  be  elimi‐
+       nated from the e-mail.
+
+       To  sum  it up, hitting “^W” in the index creates a new notice.
+       “^W” when reading a message will reply to that message.
+
+ENVIRONMENT
+       SN2MAILRC
+              Override the default location of the configuration file.
+
+       SENDMAIL
+              sn2mail-get will  use  this  program  to  send  e-mails.
+              Defaults  to  sendmail but can be anything that supports
+              the standard sendmail command line arguments.
+
+       EDITOR sn2mail-post will open this program so you  can  compose
+              new notices there. Defaults to vim.
+
+FILES
+       ~/.sn2mailrc
+              Configuration file. Can be overriden using $SN2MAILRC.
+
+BUGS
+       Currently, no bugs are known. If you find one, we invite you to
+       report     it     at     the     GitHub      Issue      tracker
+       (http://github.com/vain/sn2mail/issues).
+
+LICENSE
+       sn2mail  is  released  as  “PIZZA-WARE”.  See  the accompanying
+       LICENSE file.
+
+AUTHORS
+       sn2mail and this man page were written by Peter Hofmann.
+
+SEE ALSO
+       curl(1), xmlstarlet(1), mutt(1), exim(8), sendmail(8).
+
+
+
+sn2mail                      December 2012                  SN2MAIL(1)
