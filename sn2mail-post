@@ -41,8 +41,6 @@ reply_hash_new=$(md5sum "$reply_text")
 # Encode basic HTML entities...
 actual_text=$(sed -n '/^$/,$p' "$reply_text" | sed 1d)
 encoded_text=$(echo "$actual_text" | sed 's/&/\&amp;/g')
-encoded_text=$(echo "$encoded_text" | sed 's/</&lt;/g')
-encoded_text=$(echo "$encoded_text" | sed 's/>/&gt;/g')
 
 echo "Posting..."
 response=$(curl -f -i --user "$user:$pass" -s -F "status= $encoded_text" "$target")
