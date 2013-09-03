@@ -29,9 +29,16 @@ done
 
 # Use xmlstarlet to parse the XML.
 first=yes
-curl -f --user "$user:$pass" -s \
-"$url/statuses/public_timeline.xml?count=200$last_id" |
-xmlstarlet tr "$sheet" |
+page=$(curl -f --user "$user:$pass" -s \
+	"$url/statuses/public_timeline.xml?count=200$last_id")
+ret=$?
+if (( ret != 0 ))
+then
+	echo "curl failed: exit code was $ret" >&2
+	exit 1
+fi
+
+echo "$page" | xmlstarlet tr "$sheet" |
 while read -r notice_id
 do
 	read -r notice_in_reply_to
