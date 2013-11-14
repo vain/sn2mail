@@ -122,7 +122,7 @@ create a macro like this:
 \f(CW
 .nf
 	# sn2mail-post: New posting.
-	macro index \\cw "!sn2mail-post<Enter>" \\
+	macro index \\cw "!sn2mail-post && sn2mail-get<Enter>" \\
 	"sn2mail: Post new notice"
 .fi
 \fP
@@ -139,7 +139,7 @@ To reply to a particular notice, this works very well:
 	<enter-command> set my_weed=\\$weed<Enter>\\
 	<enter-command> set pipe_decode<Enter>\\
 	<enter-command> set weed=no<Enter>\\
-	<pipe-message> sn2mail-post /dev/stdin<Enter>\\
+	<pipe-message> sn2mail-post /dev/stdin && sn2mail-get<Enter>\\
 	<enter-command> set pipe_decode=\\$my_pipe_decode<Enter>\\
 	<enter-command> set weed=\\$my_weed<Enter>\\
 	<enter-command> unset my_pipe_decode<Enter>\\
@@ -152,6 +152,9 @@ It's a \(lqpager\(rq macro, meaning that you'll have to open a message
 first. It then pipes this message to \fBsn2mail-post\fP. Note that we
 must deactivate \fBweed\fP so that headers won't be eliminated from the
 e-mail.
+.P
+Both macros automatically call \fBsn2mail-get\fP after the posting has
+been made.
 .P
 To sum it up, hitting \(lq^W\(rq in the index creates a new notice.
 \(lq^W\(rq when reading a message will reply to that message.

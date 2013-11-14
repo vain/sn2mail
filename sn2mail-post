@@ -36,7 +36,7 @@ reply_hash=$(md5sum "$reply_text")
 reply_hash_new=$(md5sum "$reply_text")
 
 # Only send this notice if the file really has changed.
-[[ "$reply_hash" == "$reply_hash_new" ]] && { echo "Aborted." >&2; exit; }
+[[ "$reply_hash" == "$reply_hash_new" ]] && { echo "Aborted." >&2; exit 2; }
 
 # Encode basic HTML entities...
 actual_text=$(sed -n '/^$/,$p' "$reply_text" | sed 1d)
@@ -49,7 +49,5 @@ then
 	echo "Posting failed." >&2
 	echo >&2
 	echo "$response" >&2
-else
-	echo "Retrieving new items..."
-	sn2mail-get
+	exit 3
 fi
