@@ -52,13 +52,13 @@ do
 
 	# Does this notice have references?
 	ref=
-	[[ -n $notice_in_reply_to ]] && ref="<post-$notice_in_reply_to>"
+	[[ -n $notice_in_reply_to ]] && ref="<posting-$notice_in_reply_to>"
 
 	# Send an e-mail. Use sendmail directly so we have full control.
 	${SENDMAIL:-sendmail} "$to" <<EOF
 From: "${notice_user//\"/}" <$from>
 Subject: $notice_text_crop
-Message-ID: <post-$notice_id>
+Message-ID: <posting-$notice_id>
 In-Reply-To: $ref
 Date: $(date -R -d "$notice_created_at")
 
