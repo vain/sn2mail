@@ -15,10 +15,6 @@ trap 'rm -Rf "$lock"' EXIT
 # Don't fetch all entries if this is not our first run.
 [[ -f $idcache ]] && last_id="&since_id=$(< "$idcache")"
 
-# Common prefix for message IDs. Hash user, pass and url so it's
-# possible to fetch from different accounts.
-mid_pre="microblog-$(echo "$user$pass$url" | md5sum | cut -d ' ' -f1)-"
-
 # Try to find XSLT sheet.
 sheet=
 for d in "$(dirname "$(readlink -f "$0")")" /usr/share/sn2mail
@@ -56,13 +52,13 @@ do
 
 	# Does this notice have references?
 	ref=
-	[[ -n $notice_in_reply_to ]] && ref="<$mid_pre$notice_in_reply_to>"
+	[[ -n $notice_in_reply_to ]] && ref="<post-$notice_in_reply_to>"
 
 	# Send an e-mail. Use sendmail directly so we have full control.
 	${SENDMAIL:-sendmail} "$to" <<EOF
 From: "${notice_user//\"/}" <$from>
 Subject: $notice_text_crop
-Message-ID: <$mid_pre$notice_id>
+Message-ID: <post-$notice_id>
 In-Reply-To: $ref
 Date: $(date -R -d "$notice_created_at")
 
